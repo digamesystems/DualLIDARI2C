@@ -11,6 +11,10 @@
 #define SENSOR2 2 
 #define BOTH    3
 
+#define NOEVENT 0
+#define INEVENT 1
+#define OUTEVENT 2
+
 class DualLIDARI2C{
 
   public: 
@@ -25,13 +29,14 @@ class DualLIDARI2C{
     
     bool getRanges(int16_t &dist1, int16_t &dist2);
     
-    void setZone(int zoneMin, int zoneMax);
-    void getZone(int &zoneMin, int &zoneMax);
+    void setZone(int16_t zoneMin,  int16_t zoneMax);
+    void getZone(int16_t &zoneMin, int16_t &zoneMax);
 
     void  setSmoothingFactor(float newSmoothingFactor);
     float getSmoothingFactor();
 
-    int  getVisibility();
+    int16_t  getVisibility();
+    int16_t  getEvent();
 
   private: 
     TFMPI2C tfmP;
@@ -44,11 +49,13 @@ class DualLIDARI2C{
     uint8_t lidar_1_addr = 10;
     uint8_t lidar_2_addr = 11; 
 
-    int zoneMin = 0; 
-    int zoneMax = 100;
-    int visibility = NEITHER;
+    int16_t zoneMin = 0; 
+    int16_t zoneMax = 100;
+    int16_t visibility = NEITHER;
   
-    void initLIDAR();
+    bool initLIDAR();
+    int16_t deGlitch1(int16_t currentPoint);
+    int16_t deGlitch2(int16_t currentPoint); 
 
 
 };

@@ -16,8 +16,7 @@ bool DualLIDARI2C::begin(uint8_t sda, uint8_t scl)
 {
   SDA = sda;
   SCL = scl; 
-  initLIDAR();
-  return true; //fix.
+  return initLIDAR(); 
 }
 
 
@@ -28,50 +27,6 @@ bool DualLIDARI2C::begin()
   return begin(SDA, SCL);
 }
     
-
-int16_t deGlitch1(int16_t currentPoint){
-  static int16_t p1, p2, p3,retVal;
-
-  p1 = currentPoint;
-
-    // Glitch detector
-  if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
-    if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
-      p2 = p3;
-    }
-  }
-
-  retVal = p3;
-
-  // Shift the history
-  p3 = p2;
-  p2 = p1;
-
-  return retVal;
-  
-}
-
-int16_t deGlitch2(int16_t currentPoint){
-  static int16_t p1, p2, p3,retVal;
-
-  p1 = currentPoint;
-
-    // Glitch detector
-  if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
-    if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
-      p2 = p3;
-    }
-  }
-
-  retVal = p3;
-
-  // Shift the history
-  p3 = p2;
-  p2 = p1;
-
-  return retVal;
-  
-}
 
 //****************************************************************************************
 bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
@@ -106,18 +61,26 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
     visibility +=2;
   }
 
+  // Trigger sensor for the next time around
+  if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
+    DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
+  }
+
+  if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
+    DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
+  }
+
   return true;
 }
 
 
-
-void DualLIDARI2C::setZone(int zMin, int zMax)
+void DualLIDARI2C::setZone(int16_t zMin, int16_t zMax)
 {
   zoneMin = zMin;
   zoneMax = zMax;
 }
 
-void DualLIDARI2C::getZone(int &zMin, int &zMax)
+void DualLIDARI2C::getZone(int16_t &zMin, int16_t &zMax)
 {
   zMin = zoneMin;
   zMax = zoneMax;
@@ -133,14 +96,41 @@ float DualLIDARI2C::getSmoothingFactor()
   return smoothingFactor;
 }
 
-int DualLIDARI2C::getVisibility()
+int16_t DualLIDARI2C::getVisibility()
 {
   return visibility;
 }
 
+int16_t DualLIDARI2C::getEvent()
+{
+  int16_t retVal; 
+  
+  static int16_t previousVisibility;
+  int16_t currentVisibility;
+
+  retVal = NOEVENT;
+
+  currentVisibility = getVisibility();
+
+  if (previousVisibility == BOTH){
+    if (currentVisibility == SENSOR1){
+      retVal = INEVENT;
+      //DEBUG_PRINT(" IN EVENT");  
+    }  
+    if (currentVisibility == SENSOR2){
+      retVal = OUTEVENT;
+      //DEBUG_PRINT(" OUT EVENT");  
+    }   
+  }
+
+  previousVisibility = currentVisibility;
+
+  return retVal;
+}
+
 
 //**************************************************************************************** 
-void DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a 
+bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a 
                                                    // serial port.
 //****************************************************************************************
 {
@@ -151,6 +141,8 @@ void DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   // to the SDA and SCL pin numbers. It flushes any I2C data transfer
   // that may have been in progress, and ends by calling `Wire.begin()`.
   //tfmP.recoverI2CBus();
+  
+  bool retVal = false;
 
   Wire.begin();
   //Wire.begin(SCL,SDA);           
@@ -159,12 +151,24 @@ void DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
 
   // Send some example commands to the TFMini-Plus
   // - - Perform a system reset - - - - - - - - - - -
-  tfmP.sendCommand( SOFT_RESET, 0, lidar_1_addr);
-  tfmP.sendCommand( SOFT_RESET, 0, lidar_2_addr);
 
-  tfmP.sendCommand( SET_FRAME_RATE, FRAME_200, lidar_1_addr);
-  tfmP.sendCommand( SET_FRAME_RATE, FRAME_200, lidar_2_addr);
+  if( tfmP.sendCommand( SOFT_RESET, 0, lidar_1_addr)) { retVal = true; }
+  else { return false;}  
 
+  if( tfmP.sendCommand( SOFT_RESET, 0, lidar_2_addr)) { retVal = true; }
+  else { return false;}  
+  
+  tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_1_addr);
+  tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_2_addr);
+  
+  if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
+    DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
+  }
+
+  if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
+    DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
+  }
+  
   delay(500);
 
   int16_t d1, d2;
@@ -172,7 +176,57 @@ void DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   getRanges(d1,d2);
   smoothedDist1 = d1;
   smoothedDist2 = d2;
-
+  
+  return retVal;
 }
+
+//****************************************************************************************
+int16_t DualLIDARI2C::deGlitch1(int16_t currentPoint){
+//****************************************************************************************
+  static int16_t p1, p2, p3,retVal;
+
+  p1 = currentPoint;
+
+    // Glitch detector
+  if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
+    if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
+      p2 = p3;
+    }
+  }
+
+  retVal = p3;
+
+  // Shift the history
+  p3 = p2;
+  p2 = p1;
+
+  return retVal;
+  
+}
+
+//****************************************************************************************
+int16_t DualLIDARI2C::deGlitch2(int16_t currentPoint){
+//****************************************************************************************
+  static int16_t p1, p2, p3,retVal;
+
+  p1 = currentPoint;
+
+    // Glitch detector
+  if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
+    if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
+      p2 = p3;
+    }
+  }
+
+  retVal = p3;
+
+  // Shift the history
+  p3 = p2;
+  p2 = p1;
+
+  return retVal;
+  
+}
+
 
 
