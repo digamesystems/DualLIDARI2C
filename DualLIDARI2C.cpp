@@ -35,23 +35,35 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
   int16_t tfDist = 0;    // Distance to object in centimeters
   int16_t tfFlux = 0;    // Strength or quality of return signal
   int16_t tfTemp = 0;    // Internal temperature of Lidar sensor chip
-  
-  // Read the LIDAR Sensor
+  const int16_t fluxMin = 100; // Lower bound for valid signal strength from sensor.
+                               // Signals below this will be reported at a distance 
+                               // of 1300 cm. (outide our range of interest)
+
+  visibility = 0; 
+
+  // Read the LIDAR Sensors
   if( tfmP.getData( tfDist, tfFlux, tfTemp, lidar_1_addr)) { 
     dist1 = deGlitch1(tfDist);
-  } else { return false; }
+  } else {   
+    //tfmP.sendCommand( SOFT_RESET, 0, lidar_1_addr);
+    dist1 = 1300; 
+    //return false; 
+  }
  
   if( tfmP.getData( tfDist, tfFlux, tfTemp, lidar_2_addr)) { 
     dist2 = deGlitch2(tfDist);
-  } else { return false; }
+  } else { 
+    //tfmP.sendCommand( SOFT_RESET, 0, lidar_2_addr);
+    dist2 = 1300; 
+   // dist1 = 1300;
+    //return false; 
+  }
 
   smoothedDist1 = smoothedDist1 * smoothingFactor + (float)dist1 * (1-smoothingFactor);
   dist1 = smoothedDist1;
 
   smoothedDist2 = smoothedDist2 * smoothingFactor + (float)dist2 * (1-smoothingFactor);
   dist2 = smoothedDist2;
-
-  visibility = 0; 
 
   if ((dist1>=zoneMin)&&(dist1<=zoneMax)){
     visibility +=1;
@@ -61,6 +73,7 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
     visibility +=2;
   }
 
+  // Use this when running in triggered mode.
   // Trigger sensor for the next time around
   if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
     DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
@@ -69,6 +82,7 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
   if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
     DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
   }
+  
 
   return true;
 }
@@ -161,6 +175,8 @@ bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_1_addr);
   tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_2_addr);
   
+  
+  // using this with FRAME_0 and triggered operation
   if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
     DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
   }
@@ -168,6 +184,7 @@ bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
     DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
   }
+  
   
   delay(500);
 
@@ -211,7 +228,7 @@ int16_t DualLIDARI2C::deGlitch2(int16_t currentPoint){
 
   p1 = currentPoint;
 
-    // Glitch detector
+    // Hard-Coded Glitch detector
   if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
     if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
       p2 = p3;
