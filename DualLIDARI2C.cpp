@@ -65,6 +65,8 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
   smoothedDist2 = smoothedDist2 * smoothingFactor + (float)dist2 * (1-smoothingFactor);
   dist2 = smoothedDist2;
 
+  lidarHistoryBuffer.push((dist1-dist2)); // A history of the signals for display.
+
   if ((dist1>=zoneMin)&&(dist1<=zoneMax)){
     visibility +=1;
   }
@@ -72,6 +74,7 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
   if ((dist2>=zoneMin)&&(dist2<=zoneMax)){
     visibility +=2;
   }
+
 
   // Use this when running in triggered mode.
   // Trigger sensor for the next time around
