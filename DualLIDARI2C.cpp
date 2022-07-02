@@ -77,6 +77,22 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
 {
   visibility = 0; 
 
+  // Trying Trigger first. 
+  if (triggeredOperation){
+    // Trigger sensor for the next time around
+    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
+      DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
+    }
+
+    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
+      DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
+    }
+
+    delay(10); //100Hz
+  }
+
+
+
   smoothedDist1 = smoothedDist1 * smoothingFactor + \
                   (float) getRange(lidar_1_addr) * (1-smoothingFactor);
   
@@ -96,16 +112,7 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
     visibility +=2;
   }
 
-  if (triggeredOperation){
-    // Trigger sensor for the next time around
-    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
-      DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
-    }
 
-    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
-      DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
-    }
-  }
 
   return true;
 }
@@ -247,8 +254,8 @@ bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
       }
   
   } else {
-    tfmP.sendCommand( SET_FRAME_RATE, FRAME_1000, lidar_1_addr);
-    tfmP.sendCommand( SET_FRAME_RATE, FRAME_1000, lidar_2_addr);
+    tfmP.sendCommand( SET_FRAME_RATE, FRAME_100, lidar_1_addr);
+    tfmP.sendCommand( SET_FRAME_RATE, FRAME_100, lidar_2_addr);
   }
 
   int16_t d1, d2;
