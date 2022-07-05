@@ -39,32 +39,73 @@ int16_t DualLIDARI2C::getRange(uint8_t sensorAddr)
   const int16_t fluxMin = 100; // Lower bound for valid signal strength from sensor.
                                // Signals below this will be reported at a distance 
                                // of 1300 cm. (outide our range of interest)
-  int16_t dist;
+  int16_t dist = 0;
 
-  if( tfmP.getData( tfDist, tfFlux, tfTemp, sensorAddr)) { 
-    if (sensorAddr == lidar_1_addr){
+  static int16_t lastFlux1 = 0; 
+  static int16_t flux1Count = 0;
+
+  static int16_t lastFlux2 = 0;
+  static int16_t flux2Count = 0;
+  static unsigned long stuckCounter=0; 
+
+  if (tfmP.getData( tfDist, tfFlux, tfTemp, sensorAddr)){
+
+    dist = tfDist;
+   
+    if (sensorAddr==lidar_1_addr){
+      if (tfFlux == lastFlux1){
+        flux1Count++; 
+        if (flux1Count > 9){
+          stuckCounter++;
+          DEBUG_PRINT("Sensor 1 seems stuck! Stuck Count = ");
+          DEBUG_PRINTLN(stuckCounter);
+          initLIDAR();
+          //while(1){};
+        }  
+      } else {flux1Count = 0;}
+    } 
+    
+    else {
+      if (tfFlux == lastFlux2){
+        flux2Count++; 
+        if (flux2Count > 9){
+          stuckCounter++;
+          DEBUG_PRINT("Sensor 2 seems stuck! Stuck Count = ");
+          DEBUG_PRINTLN(stuckCounter);
+          initLIDAR();
+          //while(1){};
+        }  
+      } else {flux2Count = 0;}
+    } 
+    //
+    
+    if (sensorAddr == lidar_1_addr) {
       dist = deGlitch1(tfDist);
-    } else{
+    } else {
       dist = deGlitch2(tfDist);
     }
+    
+
   } else {   
-    if (tfmP.status >= TFMP_WEAK){ // higher errors are sensor read issues
+    if (tfmP.status == TFMP_WEAK) { // higher errors are sensor read issues
+      //DEBUG_PRINTLN(tfFlux);
       dist = 1300; // The getData command will return false if there is no 
-                    // target detected. Here we call 'infinity' 1300.
+                   // target detected. Here we call 'infinity' 1300.
     } else { // Communication error -- serial or i2c.
       dist = 1301;
-      DEBUG_PRINT("ERROR: ");
+      DEBUG_PRINT("Eror in getData: ");
       DEBUG_PRINTLN(tfmP.status);
-      bool stat = initLIDAR();
-      if( stat) { DEBUG_PRINTLN("Reinitialized."); }
-      else { DEBUG_PRINTLN("Reinitialization failed.")}  
+      tfmP.printReply();
+      //while(1){};// Spin here forever.  
     }
   }
 
   if (sensorAddr==lidar_1_addr){
     status1 = tfmP.status;
+    lastFlux1 = tfFlux;
   } else {
     status2 = tfmP.status;
+    lastFlux2 = tfFlux;
   }
 
   return dist;
@@ -77,24 +118,30 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
 {
   visibility = 0; 
 
-  // Trying Trigger first. 
-  if (triggeredOperation){
-    // Trigger sensor for the next time around
-    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
+  if (triggeredOperation){ // Trigger a read. 
+    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr)){
+      //tfmP.printReply();
+    } else {
       DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
+      tfmP.printReply();
+      //while(1){};// Spin here forever.
     }
-
-    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
-      DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
-    }
-
-    delay(10); //100Hz
+    delay(3);
   }
-
-
-
+  
   smoothedDist1 = smoothedDist1 * smoothingFactor + \
                   (float) getRange(lidar_1_addr) * (1-smoothingFactor);
+
+  if (triggeredOperation){ // Trigger a read. 
+    if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr)) {
+      //tfmP.printReply(); 
+    } else {
+      DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
+      tfmP.printReply();
+      //while(1){};// Spin here forever.
+    }
+    delay(3);
+  }
   
   smoothedDist2 = smoothedDist2 * smoothingFactor + \
                   (float) getRange(lidar_2_addr) * (1-smoothingFactor);
@@ -111,8 +158,6 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
   if ((dist2>=zoneMin)&&(dist2<=zoneMax)){
     visibility +=2;
   }
-
-
 
   return true;
 }
@@ -223,35 +268,74 @@ int16_t DualLIDARI2C::getEvent()
 
 
 //**************************************************************************************** 
+bool DualLIDARI2C::resetSensor(uint8_t sensorAddr)
+//**************************************************************************************** 
+{
+  //DEBUG_PRINT("Resetting LIDAR at addr: ");
+  //DEBUG_PRINTLN(sensorAddr);
+  if( tfmP.sendCommand( SOFT_RESET, 0, sensorAddr)) { 
+    //DEBUG_PRINT("Successful Reset of LIDAR at addr: ");
+    //DEBUG_PRINTLN(sensorAddr);
+    //tfmP.printReply();
+    return true; 
+  }
+  else { 
+    DEBUG_PRINT("Trouble Resetting LIDAR at addr: ");
+    DEBUG_PRINTLN(sensorAddr);
+    tfmP.printReply();
+    //while(1){};// Spin here forever.
+    return false;
+  }
+
+}
+
+
+//**************************************************************************************** 
 bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a 
                                                    // serial port.
 //****************************************************************************************
 {
   bool retVal = false;
- 
+  unsigned long t1, t2;
+
+  t1 = millis();
 
   Wire.begin();          
-  Wire.setClock(400000);  // Set I2C bus speed to 'Fast' if
+  //Wire.setClock(400000);  // Set I2C bus speed to 'Fast' if
                           // your Arduino supports 400KHz.
 
-  if( tfmP.sendCommand( SOFT_RESET, 0, lidar_1_addr)) { retVal = true; }
-  else { return false;}  
-  
-  if( tfmP.sendCommand( SOFT_RESET, 0, lidar_2_addr)) { retVal = true; }
-  else { return false;}  
+  retVal = resetSensor(lidar_1_addr);
+  if (retVal) {retVal =  resetSensor(lidar_2_addr);};
   
   if (triggeredOperation){
-      tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_1_addr);
-      tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_2_addr);
+      //DEBUG_PRINTLN("Configuring Sensors...");  
+      if(!(tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_1_addr))){
+        DEBUG_PRINTLN("Trouble Setting Frame Rate 1 to 0 in initLIDAR");  
+        tfmP.printReply();
+        //while(1);
+      }
 
+      if(!(tfmP.sendCommand( SET_FRAME_RATE, FRAME_0, lidar_2_addr))){
+        DEBUG_PRINTLN("Trouble Setting Frame Rate 2 to 0 in initLIDAR");  
+        tfmP.printReply();
+        //while(1);
+      }
+
+      //DEBUG_PRINTLN("Triggering Sensors...");  
       // using this with FRAME_0 and triggered operation
       if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_1_addr) != true) {
-        DEBUG_PRINTLN("Trouble Triggering LIDAR 1");
+        DEBUG_PRINTLN("Trouble Triggering LIDAR 1 in initLIDAR");
+        tfmP.printReply();
+        //while(1){};// Spin here forever.
       }
 
       if( tfmP.sendCommand( TRIGGER_DETECTION, 0, lidar_2_addr) != true) {
-        DEBUG_PRINTLN("Trouble Triggering LIDAR 2");
+        DEBUG_PRINTLN("Trouble Triggering LIDAR 2 in initLIDAR");
+        tfmP.printReply();
+        //while(1){};// Spin here forever.
       }
+
+      delay(20);
   
   } else {
     tfmP.sendCommand( SET_FRAME_RATE, FRAME_100, lidar_1_addr);
@@ -264,6 +348,10 @@ bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   smoothedDist1 = d1;
   smoothedDist2 = d2;
   
+  t2 = millis();
+
+  DEBUG_PRINT("  LIDAR initialization time: ");
+  DEBUG_PRINTLN(t2-t1);
   return retVal;
 }
 

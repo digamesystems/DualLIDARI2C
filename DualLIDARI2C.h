@@ -67,6 +67,7 @@ class DualLIDARI2C{
     int16_t zoneMax = 100;
     int16_t visibility = NEITHER;
   
+    bool resetSensor(uint8_t sensorAddr);
     bool initLIDAR();
     int16_t deGlitch1(int16_t currentPoint);
     int16_t deGlitch2(int16_t currentPoint); 
