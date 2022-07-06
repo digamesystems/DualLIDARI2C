@@ -51,41 +51,13 @@ int16_t DualLIDARI2C::getRange(uint8_t sensorAddr)
   if (tfmP.getData( tfDist, tfFlux, tfTemp, sensorAddr)){
 
     dist = tfDist;
-   
-    if (sensorAddr==lidar_1_addr){
-      if (tfFlux == lastFlux1){
-        flux1Count++; 
-        if (flux1Count > 9){
-          stuckCounter++;
-          DEBUG_PRINT("Sensor 1 seems stuck! Stuck Count = ");
-          DEBUG_PRINTLN(stuckCounter);
-          initLIDAR();
-          //while(1){};
-        }  
-      } else {flux1Count = 0;}
-    } 
-    
-    else {
-      if (tfFlux == lastFlux2){
-        flux2Count++; 
-        if (flux2Count > 9){
-          stuckCounter++;
-          DEBUG_PRINT("Sensor 2 seems stuck! Stuck Count = ");
-          DEBUG_PRINTLN(stuckCounter);
-          initLIDAR();
-          //while(1){};
-        }  
-      } else {flux2Count = 0;}
-    } 
-    //
-    
+  
     if (sensorAddr == lidar_1_addr) {
       dist = deGlitch1(tfDist);
     } else {
       dist = deGlitch2(tfDist);
     }
     
-
   } else {   
     if (tfmP.status == TFMP_WEAK) { // higher errors are sensor read issues
       //DEBUG_PRINTLN(tfFlux);
@@ -99,6 +71,32 @@ int16_t DualLIDARI2C::getRange(uint8_t sensorAddr)
       //while(1){};// Spin here forever.  
     }
   }
+
+    if (sensorAddr==lidar_1_addr){
+    if (tfFlux == lastFlux1){
+      flux1Count++; 
+      if (flux1Count > 9){
+        stuckCounter++;
+        DEBUG_PRINT("Sensor 1 seems stuck! Stuck Count = ");
+        DEBUG_PRINTLN(stuckCounter);
+        initLIDAR();
+        //while(1){};
+      }  
+    } else {flux1Count = 0;}
+  } 
+  
+  else {
+    if (tfFlux == lastFlux2){
+      flux2Count++; 
+      if (flux2Count > 9){
+        stuckCounter++;
+        DEBUG_PRINT("Sensor 2 seems stuck! Stuck Count = ");
+        DEBUG_PRINTLN(stuckCounter);
+        initLIDAR();
+        //while(1){};
+      }  
+    } else {flux2Count = 0;}
+  } 
 
   if (sensorAddr==lidar_1_addr){
     status1 = tfmP.status;
@@ -126,7 +124,7 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
       tfmP.printReply();
       //while(1){};// Spin here forever.
     }
-    delay(3);
+    delay(5);
   }
   
   smoothedDist1 = smoothedDist1 * smoothingFactor + \
@@ -140,7 +138,7 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
       tfmP.printReply();
       //while(1){};// Spin here forever.
     }
-    delay(3);
+    delay(5);
   }
   
   smoothedDist2 = smoothedDist2 * smoothingFactor + \
