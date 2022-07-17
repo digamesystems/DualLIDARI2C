@@ -210,8 +210,12 @@ int16_t DualLIDARI2C::getEvent()
   There are conditions where this isn't strict enough. 
   
   New Algorithms: 
-    NEITHER-> SENSOR1 -> BOTH -> SENSOR2 -> NEITHER = OUT.
-    NEITHER-> SENSOR2 -> BOTH -> SENSOR1 -> NEITHER = IN.
+    SENSOR1 -> BOTH -> SENSOR2 -> NEITHER = OUT.
+    SENSOR1 -> BOTH -> NEITHER = OUT.  // In case sensor 2 never sees the target by itself.
+    
+    SENSOR2 -> BOTH -> SENSOR1 -> NEITHER = IN.
+    SENSOR2 -> BOTH -> NEITHER = IN.  // In case sensor 1 never sees the target by itself.
+
     Other options are explored below
   
   For this, we need a little state history buffer to generate events.
