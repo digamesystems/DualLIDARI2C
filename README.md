@@ -21,8 +21,15 @@ visibility change as a target passes. For example:
 Might be a target passing from "left to right". A different pattern would obtain for moving 
 "right to left". 
 
-The class provides some functions for 'de-Glitching' and 'smoothing' the signals to improve
-performance. 
+In the figure below, we show the output of the test_dual_lidar.ino example app using the Serial Plotter Utility from the Arduino IDE: 
+
+![Serial Plotter Output](docs/serialPlotterScreenShot.jpg)
+
+1. Top Trace: In/Out Event Detection
+2. Pink Trace: Visibility
+3. Bottom Traces: LIDAR 1/2 Distances
+
+The class also provides some functions for 'de-Glitching' and 'smoothing' the signals to improve performance. 
 
 Author: 
 J. Price, Digame Systems, 2022.

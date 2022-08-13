@@ -13,6 +13,11 @@
  * BIG NOTE: System assumes the two LIDAR sensors have I2C addresses of DECIMAL, not hex, values 10 and 11. 
  * (The TFMini Plus library examples show how to configure your sensor's address.)
  * 
+ * Program output is designed to display nicely in the Arduino IDE's Seraial Plotter utility.
+ * 
+ * Author: J. Price, Digame Systems, 2022
+ * GitHub Repo: https://github.com/digamesystems/DualLIDARI2C
+ * 
  */
 
 #include <DualLIDARI2C.h>
