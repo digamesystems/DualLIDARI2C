@@ -72,15 +72,14 @@ int16_t DualLIDARI2C::getRange(uint8_t sensorAddr)
     }
   }
 
-    if (sensorAddr==lidar_1_addr){
-    if (tfFlux == lastFlux1){
+  if (sensorAddr==lidar_1_addr){
+    if (tfFlux == lastFlux1){ 
       flux1Count++; 
       if (flux1Count > 9){
         stuckCounter++;
         DEBUG_PRINT("Sensor 1 seems stuck! Stuck Count = ");
         DEBUG_PRINTLN(stuckCounter);
         initLIDAR();
-        //while(1){};
       }  
     } else {flux1Count = 0;}
   } 
@@ -93,7 +92,6 @@ int16_t DualLIDARI2C::getRange(uint8_t sensorAddr)
         DEBUG_PRINT("Sensor 2 seems stuck! Stuck Count = ");
         DEBUG_PRINTLN(stuckCounter);
         initLIDAR();
-        //while(1){};
       }  
     } else {flux2Count = 0;}
   } 
@@ -109,6 +107,7 @@ int16_t DualLIDARI2C::getRange(uint8_t sensorAddr)
   return dist;
 
 }
+
 
 //****************************************************************************************
 bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
@@ -161,32 +160,47 @@ bool DualLIDARI2C::getRanges( int16_t &dist1, int16_t &dist2)
 }
 
 
+//****************************************************************************************
 void DualLIDARI2C::setZone(int16_t zMin, int16_t zMax)
+//****************************************************************************************
 {
   zoneMin = zMin;
   zoneMax = zMax;
 }
 
+
+//****************************************************************************************
 void DualLIDARI2C::getZone(int16_t &zMin, int16_t &zMax)
+//****************************************************************************************
 {
   zMin = zoneMin;
   zMax = zoneMax;
 }
 
+
+//****************************************************************************************
 void DualLIDARI2C::setSmoothingFactor(float newSmoothingFactor)
+//****************************************************************************************
 {
   smoothingFactor = newSmoothingFactor;
 }
 
+
+//****************************************************************************************
 float DualLIDARI2C::getSmoothingFactor()
+//****************************************************************************************
 {
   return smoothingFactor;
 }
 
+
+//****************************************************************************************
 int16_t DualLIDARI2C::getVisibility()
+//****************************************************************************************
 {
   return visibility;
 }
+
 
 //**************************************************************************************** 
 int16_t DualLIDARI2C::getEvent()
@@ -294,7 +308,7 @@ bool DualLIDARI2C::resetSensor(uint8_t sensorAddr)
 
 //**************************************************************************************** 
 bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a 
-                                                   // serial port.
+                               // serial port.
 //****************************************************************************************
 {
   bool retVal = false;
@@ -357,6 +371,7 @@ bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   return retVal;
 }
 
+
 //****************************************************************************************
 int16_t DualLIDARI2C::deGlitch1(int16_t currentPoint){
 //****************************************************************************************
@@ -380,6 +395,7 @@ int16_t DualLIDARI2C::deGlitch1(int16_t currentPoint){
   return retVal;
   
 }
+
 
 //****************************************************************************************
 int16_t DualLIDARI2C::deGlitch2(int16_t currentPoint){
