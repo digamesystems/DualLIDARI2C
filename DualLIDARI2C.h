@@ -1,5 +1,5 @@
-#ifndef __DUAL_LIDAR_H__
-#define __DUAL_LIDAR_H__
+#ifndef DUAL_LIDAR_H_INCLUDED
+#define DUAL_LIDAR_H_INCLUDED
 /*
   DualLidarI2C - A class for working with two TFMINI-S/Plus sensors to determine direction of 
   travel for a target along with presence detection. 

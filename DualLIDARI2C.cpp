@@ -1,10 +1,8 @@
-#include <digameDebug.h>  // debug defines
-
 #include <Wire.h>         // Arduino standard I2C/Two-Wire Library
 #include <TFMPI2C.h>      // Include TFMini Plus LIDAR Library v1.5.0
                           // https://github.com/budryerson/TFMini-Plus-I2C
 
-#include <DualLIDARI2C.h> 
+#include "DualLIDARI2C.h"
 
 DualLIDARI2C::DualLIDARI2C(){}
 DualLIDARI2C::~DualLIDARI2C(){}
@@ -379,8 +377,8 @@ int16_t DualLIDARI2C::deGlitch1(int16_t currentPoint){
 
   p1 = currentPoint;
 
-    // Glitch detector
-  if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
+  // Hard-Coded Glitch detector. TODO: Make configurable.
+  if (abs(p3-p1) < 10) {   // The latest point and two points back are pretty close 
     if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
       p2 = p3;
     }
@@ -404,8 +402,9 @@ int16_t DualLIDARI2C::deGlitch2(int16_t currentPoint){
 
   p1 = currentPoint;
 
-    // Hard-Coded Glitch detector
-  if (abs(p3-p1) < 10) {   // The latest point and the two points back are pretty close 
+  // Hard-Coded Glitch detector. TODO: Make configurable.
+
+  if (abs(p3-p1) < 10) {   // The latest point and two points back are pretty close 
     if (abs(p2-p3) > 10) { // The point in the middle is too different from the adjacent points -- ignore
       p2 = p3;
     }
