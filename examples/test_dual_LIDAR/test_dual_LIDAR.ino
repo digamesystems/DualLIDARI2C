@@ -19,7 +19,7 @@
 
 DualLIDARI2C dualLIDAR;
 
-bool    lidarOK=false; 
+bool    lidarOK = false; 
 int16_t zoneMin = 0;            // Zone of interest (cm)
 int16_t zoneMax = 150;
 float   smoothingFactor = 0.5; // Exponentially weighted moving average -- range = 0.. < 1.0 
@@ -42,15 +42,16 @@ void setup() {
 
     int16_t zMin, zMax;
     dualLIDAR.getZone(zMin, zMax);
-    //Serial.printf("Zone set to: Min = %d, Max = %d\n",zMin, zMax);
+    Serial.printf("Zone set to: Min = %d, Max = %d\n",zMin, zMax);
     
     dualLIDAR.setSmoothingFactor(smoothingFactor); 
-    //Serial.printf("Smoothing factor set to: %f\n", dualLIDAR.getSmoothingFactor());
+    Serial.printf("Smoothing factor set to: %f\n", dualLIDAR.getSmoothingFactor());
      
   } else {
     Serial.printf("ERROR: Trouble initializing dualLIDAR.\n");    
   }
 
+  delay(2000);
 
   Serial.printf("LIDAR1, STAT1, LIDAR2, STAT2, VISIBILITY, IN/OUT\n");
   
@@ -62,7 +63,7 @@ void loop() {
 //**********************************************************************************
   // Read the sensors and plot distances, return status codes, 
   // visibility on one, none or both sensors, and direction of travel. 
-  // For a quick demo, point your sensors at the ceiling and wave your had across
+  // For a quick demo, point your sensors at the ceiling and wave your hand across
   // them. 
   
   if (lidarOK){
