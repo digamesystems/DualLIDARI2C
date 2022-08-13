@@ -364,7 +364,7 @@ bool DualLIDARI2C::initLIDAR() // Initialize a LIDAR sensor on a
   
   t2 = millis();
 
-  DEBUG_PRINT("  LIDAR initialization time: ");
+  DEBUG_PRINT("LIDAR initialization time: ");
   DEBUG_PRINTLN(t2-t1);
   return retVal;
 }
